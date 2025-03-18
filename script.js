@@ -116,6 +116,26 @@ if (entry.target.id === 'impact-metrics' && entry.isIntersecting) {
     const metricNumbers = entry.target.querySelectorAll('.metric-number[data-count]');
     // Animate them
     animateStats(metricNumbers);
+
+    // ===== Scroll Animation for Sections =====
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            
+            // Animate stat counting if this is a stat section
+            if (entry.target.id === 'impact-metrics') {
+                const metricNumbers = entry.target.querySelectorAll('.metric-number[data-count]');
+                animateStats(metricNumbers);
+            }
+            
+            observer.unobserve(entry.target);
+        }
+    });
+}, {
+    threshold: 0.15,
+    rootMargin: '0px 0px -100px 0px'
+});
 }
     
     // Close mobile menu when clicking on a menu link (except dropdown toggles in mobile view)
