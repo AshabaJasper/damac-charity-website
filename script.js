@@ -1,7 +1,6 @@
 /**
  * DaMaC Charity Website JavaScript
- * This file handles all interactive functionality of the website
- * including:
+ * This file handles all interactive functionality of the website including:
  * - Mobile navigation with dropdowns
  * - Header scroll effects
  * - Testimonial slider
@@ -12,17 +11,67 @@
 
 // Wait for DOM to be fully loaded before executing JavaScript
 document.addEventListener('DOMContentLoaded', function() {
-    // Variables for commonly accessed elements
+    // ===== Image Lazy Loading =====
+    // Add lazy loading for images to improve performance
+    if ('IntersectionObserver' in window) {
+        const imgObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    const src = img.getAttribute('data-src');
+                    
+                    if (src) {
+                        img.src = src;
+                        img.removeAttribute('data-src');
+                    }
+                    
+                    observer.unobserve(img);
+                }
+            });
+        });
+        
+        document.querySelectorAll('img[data-src]').forEach(img => {
+            imgObserver.observe(img);
+        });
+    } else {
+        // Fallback for browsers that don't support IntersectionObserver
+        document.querySelectorAll('img[data-src]').forEach(img => {
+            const src = img.getAttribute('data-src');
+            if (src) {
+                img.src = src;
+                img.removeAttribute('data-src');
+            }
+        });
+    }
+    
+    // ===== Custom Event Handling =====
+    // Gallery Image Modal (for future implementation)
+    const galleryItems = document.querySelectorAll('.gallery-preview-item');
+    if (galleryItems.length > 0) {
+        galleryItems.forEach(item => {
+            item.addEventListener('click', function() {
+                // Add modal functionality in the future
+                console.log('Gallery item clicked:', this);
+            });
+        });
+    }
+    
+    // Initialize any additional functionality
+    function initializeAdditionalFeatures() {
+        // Add any additional initialization code here
+        console.log('DaMaC website initialized successfully!');
+    }
+    
+    // Run initialization
+    initializeAdditionalFeatures();
+});Variables for commonly accessed elements
     const header = document.getElementById('header');
     const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
     const navMenu = document.querySelector('.nav-menu');
     const dropdowns = document.querySelectorAll('.dropdown');
-    const testimonialItems = document.querySelectorAll('.testimonial-item');
-    const prevBtn = document.querySelector('.prev-btn');
-    const nextBtn = document.querySelector('.next-btn');
-    const dots = document.querySelectorAll('.dot');
-    const statElements = document.querySelectorAll('.stat-number[data-count]');
+    const backToTop = document.getElementById('back-to-top');
     const forms = document.querySelectorAll('form');
+    const statElements = document.querySelectorAll('.metric-number[data-count]');
     
     // Store reference to dropdown click handlers for cleanup
     const dropdownHandlers = new Map();
@@ -30,13 +79,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===== Header Scroll Effect =====
     function handleHeaderScroll() {
         if (window.scrollY > 50) {
-            header.style.padding = '10px 0';
-            header.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
-            header.style.backgroundColor = 'rgba(255, 255, 255, 0.98)';
+            header.classList.add('scrolled');
         } else {
-            header.style.padding = '15px 0';
-            header.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
-            header.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+            header.classList.remove('scrolled');
+        }
+        
+        // Show/hide back to top button
+        if (window.scrollY > 300) {
+            backToTop.classList.add('active');
+        } else {
+            backToTop.classList.remove('active');
         }
     }
     
@@ -109,34 +161,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
-
-    //  IntersectionObserver callback function
-if (entry.target.id === 'impact-metrics' && entry.isIntersecting) {
-    // Get the metric elements
-    const metricNumbers = entry.target.querySelectorAll('.metric-number[data-count]');
-    // Animate them
-    animateStats(metricNumbers);
-
-    // ===== Scroll Animation for Sections =====
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('in-view');
-            
-            // Animate stat counting if this is a stat section
-            if (entry.target.id === 'impact-metrics') {
-                const metricNumbers = entry.target.querySelectorAll('.metric-number[data-count]');
-                animateStats(metricNumbers);
-            }
-            
-            observer.unobserve(entry.target);
-        }
-    });
-}, {
-    threshold: 0.15,
-    rootMargin: '0px 0px -100px 0px'
-});
-}
     
     // Close mobile menu when clicking on a menu link (except dropdown toggles in mobile view)
     navMenu.querySelectorAll('a').forEach(link => {
@@ -163,106 +187,120 @@ const observer = new IntersectionObserver((entries) => {
         });
     });
     
-    // ===== Testimonial Slider =====
-    let currentTestimonial = 0;
-    
-    // Hide all testimonials except the first one
-    if (testimonialItems.length > 0) {
-        testimonialItems.forEach((item, index) => {
-            if (index !== 0) {
-                item.classList.remove('active');
-            } else {
-                item.classList.add('active');
+    // ===== Smooth Scrolling for Anchor Links =====
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            // Skip for mobile dropdown toggles
+            if (window.innerWidth <= 768 && 
+                this.parentElement.classList.contains('dropdown') && 
+                !this.closest('.dropdown-menu')) {
+                return;
+            }
+            
+            const targetId = this.getAttribute('href');
+            if (targetId === '#') return;
+            
+            const targetElement = document.querySelector(targetId);
+            if (targetElement) {
+                e.preventDefault();
+                
+                // Calculate header height for offset
+                const headerHeight = header.offsetHeight;
+                
+                // Scroll to the element with offset for fixed header
+                const elementPosition = targetElement.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - headerHeight;
+                
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                });
             }
         });
-        
-        // Add active class to the first dot
-        if (dots.length > 0) {
-            dots[0].classList.add('active');
-        }
-    }
-    
-    // Function to show a specific testimonial (improved animation)
-    function showTestimonial(index) {
-        // Update the testimonials
-        testimonialItems.forEach(item => {
-            item.classList.remove('active');
-        });
-        
-        testimonialItems[index].classList.add('active');
-        
-        // Update the dots
-        if (dots.length > 0) {
-            dots.forEach(dot => {
-                dot.classList.remove('active');
-            });
-            
-            dots[index].classList.add('active');
-        }
-        
-        // Use CSS transitions instead of JS animation for better performance
-        testimonialItems[index].style.opacity = 0;
-        
-        // Force reflow to ensure the opacity change is registered before transition starts
-        void testimonialItems[index].offsetWidth;
-        
-        testimonialItems[index].style.transition = 'opacity 0.3s ease';
-        testimonialItems[index].style.opacity = 1;
-    }
-    
-    // Event listeners for testimonial navigation
-    if (prevBtn && nextBtn) {
-        nextBtn.addEventListener('click', function() {
-            currentTestimonial = (currentTestimonial + 1) % testimonialItems.length;
-            showTestimonial(currentTestimonial);
-        });
-        
-        prevBtn.addEventListener('click', function() {
-            currentTestimonial = (currentTestimonial - 1 + testimonialItems.length) % testimonialItems.length;
-            showTestimonial(currentTestimonial);
-        });
-    }
-    
-    // Event listeners for testimonial dots
-    if (dots.length > 0) {
-        dots.forEach((dot, index) => {
-            dot.addEventListener('click', function() {
-                currentTestimonial = index;
-                showTestimonial(currentTestimonial);
-            });
-        });
-    }
-    
-    // Auto slide testimonials every 5 seconds (if visible)
-    let testimonialInterval;
-    
-    function startTestimonialInterval() {
-        // Clear any existing interval first
-        if (testimonialInterval) {
-            clearInterval(testimonialInterval);
-        }
-        
-        // Only set up interval if we have testimonials
-        if (testimonialItems.length > 0) {
-            testimonialInterval = setInterval(() => {
-                if (document.visibilityState === 'visible') {
-                    currentTestimonial = (currentTestimonial + 1) % testimonialItems.length;
-                    showTestimonial(currentTestimonial);
-                }
-            }, 5000);
-        }
-    }
-    
-    startTestimonialInterval();
-    
-    // Reset interval when tab becomes visible
-    document.addEventListener('visibilitychange', function() {
-        if (document.visibilityState === 'visible') {
-            startTestimonialInterval();
-        }
     });
     
-    // ===== Form Submissions =====
+    // ===== Back to Top Button =====
+    if (backToTop) {
+        backToTop.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    }
+    
+    // ===== Scroll Animation for Sections =====
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('in-view');
+                
+                // Animate stat counting if this is a stat section
+                const statElements = entry.target.querySelectorAll('.metric-number[data-count]');
+                if (statElements.length > 0) {
+                    animateStats(statElements);
+                }
+                
+                observer.unobserve(entry.target);
+            }
+        });
+    }, {
+        threshold: 0.15,
+        rootMargin: '0px 0px -100px 0px'
+    });
+    
+    // Observe all sections and elements that should animate in
+    document.querySelectorAll('.section, .metric-item, .program-card, .value-card, .involvement-card, .gallery-preview-item').forEach(element => {
+        observer.observe(element);
+        
+        // Add initial state for animation
+        element.classList.add('fade-in-section');
+    });
+    
+    // ===== Animate Stats Counting =====
+    function animateStats(elements) {
+        elements.forEach(stat => {
+            // Safely parse the target value
+            const targetValue = parseInt(stat.getAttribute('data-count'), 10);
+            
+            // Skip animation if data-count is not a valid number
+            if (isNaN(targetValue)) {
+                console.warn('Invalid data-count value:', stat.getAttribute('data-count'));
+                return;
+            }
+            
+            let currentValue = 0;
+            const increment = targetValue > 100 ? Math.ceil(targetValue / 60) : 1;
+            const duration = 2000; // 2 seconds
+            const interval = Math.floor(duration / (targetValue / increment));
+            
+            stat.classList.add('animated-stat');
+            
+            const counter = setInterval(() => {
+                currentValue += increment;
+                
+                if (currentValue >= targetValue) {
+                    stat.textContent = targetValue;
+                    clearInterval(counter);
+                } else {
+                    stat.textContent = currentValue;
+                }
+            }, interval);
+        });
+    }
+    
+    // Animate the stats in hero section immediately if they exist
+    const heroStats = document.querySelectorAll('.hero-stats .stat-number');
+    if (heroStats.length > 0) {
+        setTimeout(() => {
+            heroStats.forEach(stat => {
+                stat.classList.add('animated-stat');
+            });
+        }, 500);
+    }
+    
+    // ===== Form Validation and Submission =====
     forms.forEach(form => {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
@@ -330,12 +368,6 @@ const observer = new IntersectionObserver((entries) => {
             const successMessage = document.createElement('div');
             successMessage.className = 'form-success';
             successMessage.textContent = 'Thank you for your submission! We will get back to you soon.';
-            successMessage.style.color = '#28a745';
-            successMessage.style.padding = '15px';
-            successMessage.style.marginTop = '20px';
-            successMessage.style.backgroundColor = '#f8f9fa';
-            successMessage.style.borderRadius = '4px';
-            successMessage.style.border = '1px solid #28a745';
             
             // Replace any existing message and add the new one
             const existingMessage = form.querySelector('.form-success');
@@ -356,115 +388,11 @@ const observer = new IntersectionObserver((entries) => {
         });
     });
     
-    // Helper function to validate email format - fixed regex
+    // Helper function to validate email format
     function isValidEmail(email) {
-        // Fixed regex with properly escaped parentheses
         const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
         return re.test(String(email).toLowerCase());
     }
-    
-    // ===== Scroll Animation for Sections =====
-    // Add animation when sections come into view
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('in-view');
-                
-                // Animate stat counting if this is a stat section
-                const statElements = entry.target.querySelectorAll('.stat-number[data-count]');
-                if (statElements.length > 0) {
-                    animateStats(statElements);
-                }
-                
-                observer.unobserve(entry.target);
-            }
-        });
-    }, {
-        threshold: 0.15,
-        rootMargin: '0px 0px -100px 0px'
-    });
-    
-    // Observe all sections and elements that should animate in
-    document.querySelectorAll('.section, .program-card, .stat-box, .team-member, .gallery-item, .timeline-item, .principle-item').forEach(element => {
-        observer.observe(element);
-        
-        // Add initial state for animation
-        element.classList.add('fade-in-section');
-    });
-    
-    // ===== Animate Stats Counting =====
-    function animateStats(elements) {
-        elements.forEach(stat => {
-            // Safely parse the target value
-            const targetValue = parseInt(stat.getAttribute('data-count'), 10);
-            
-            // Skip animation if data-count is not a valid number
-            if (isNaN(targetValue)) {
-                console.warn('Invalid data-count value:', stat.getAttribute('data-count'));
-                return;
-            }
-            
-            let currentValue = 0;
-            const increment = targetValue > 100 ? Math.ceil(targetValue / 60) : 1;
-            const duration = 2000; // 2 seconds
-            const interval = Math.floor(duration / (targetValue / increment));
-            
-            stat.classList.add('animated-stat');
-            
-            const counter = setInterval(() => {
-                currentValue += increment;
-                
-                if (currentValue >= targetValue) {
-                    stat.textContent = targetValue;
-                    clearInterval(counter);
-                } else {
-                    stat.textContent = currentValue;
-                }
-            }, interval);
-        });
-    }
-    
-    // Animate the stats in hero section immediately if they exist
-    const heroStats = document.querySelectorAll('.hero-stats .stat-number');
-    if (heroStats.length > 0) {
-        setTimeout(() => {
-            heroStats.forEach(stat => {
-                stat.classList.add('animated-stat');
-            });
-        }, 500);
-    }
-    
-    // ===== Smooth Scrolling for Anchor Links =====
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function(e) {
-            // Skip for mobile dropdown toggles
-            if (window.innerWidth <= 768 && 
-                this.parentElement.classList.contains('dropdown') && 
-                !this.closest('.dropdown-menu')) {
-                return;
-            }
-            
-            const targetId = this.getAttribute('href');
-            if (targetId === '#') return;
-            
-            const targetElement = document.querySelector(targetId);
-            if (targetElement) {
-                e.preventDefault();
-                
-                // Calculate header height for offset
-                const headerHeight = header.offsetHeight;
-                
-                // Scroll to the element with offset for fixed header
-                const elementPosition = targetElement.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.pageYOffset - headerHeight;
-                
-                window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
-                });
-            }
-        });
-    });
     
     // ===== Add active class to current nav item =====
     function setActiveNavItem() {
@@ -493,4 +421,5 @@ const observer = new IntersectionObserver((entries) => {
     
     window.addEventListener('scroll', setActiveNavItem);
     window.addEventListener('load', setActiveNavItem);
-});
+    
+    //
